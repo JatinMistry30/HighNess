@@ -706,6 +706,11 @@ export const acceptContract = async (req, res) => {
   try {
     const { contractId } = req.params;
     const clientId = req.user.id;
+
+    console.log("=== ACCEPT CONTRACT DEBUG ===");
+    console.log("contractId:", contractId, "type:", typeof contractId);
+    console.log("clientId:", clientId);
+
     await connection.beginTransaction();
 
     const [contracts] = await connection.execute(
@@ -713,36 +718,69 @@ export const acceptContract = async (req, res) => {
         c.id,
         c.client_id,
         c.freelancer_id,
+        c.status,
         cl.full_name AS client_full_name,
         fr.full_name AS freelancer_full_name
       FROM contracts c
       JOIN users cl ON cl.id = c.client_id
       JOIN users fr ON fr.id = c.freelancer_id
-      WHERE c.id = ? AND c.client_id = ?
-        `,
+      WHERE c.id = ? AND c.client_id = ?`,
       [contractId, clientId],
     );
+
+    console.log("Contract query result:", contracts);
+
     const contract = contracts[0];
 
-    await sqlPool.execute(
+    if (!contract) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Contract not found or unauthorized",
+      });
+    }
+
+    console.log("Contract found:", contract);
+    console.log("Contract current status:", contract.status);
+
+    const [updateResult] = await connection.execute(
       `UPDATE contracts
-       SET status = 'PENDING_CLIENT',
+       SET status = 'ACTIVE',
            client_signed = TRUE,
-           signed_at = NOW()
+           signed_at = NOW(),
+           updated_at = NOW()
        WHERE id = ? AND client_id = ?`,
       [contractId, clientId],
     );
 
-    // Creating workspace
-    await connection.execute(
+    console.log("Update result:", updateResult);
+    console.log("Affected rows:", updateResult.affectedRows);
+
+    if (updateResult.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Failed to update contract",
+      });
+    }
+
+    // Test with a raw simple insert first
+    console.log("Attempting workspace insert with values:", {
+      client_id: contract.client_id,
+      freelancer_id: contract.freelancer_id,
+      client_full_name: contract.client_full_name,
+      freelancer_full_name: contract.freelancer_full_name,
+      contract_id: contract.id,
+    });
+
+    const [workspaceResult] = await connection.execute(
       `INSERT INTO workspaces (
         client_id,
         freelancer_id,
         client_full_name,
         freelancer_full_name,
-        contract_id,
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, NOW())`,
+        contract_id
+      ) VALUES (?, ?, ?, ?, ?)`,
       [
         contract.client_id,
         contract.freelancer_id,
@@ -751,18 +789,30 @@ export const acceptContract = async (req, res) => {
         contract.id,
       ],
     );
+
+    console.log("Workspace insert result:", workspaceResult);
+    console.log("Workspace insertId:", workspaceResult.insertId);
+
     await connection.commit();
+    console.log("Transaction committed successfully");
 
     res.json({
       success: true,
       message: "Contract accepted and workspace created",
+      workspace_id: workspaceResult.insertId,
     });
   } catch (error) {
     await connection.rollback();
-    console.error(error);
+    console.error("=== ACCEPT CONTRACT ERROR ===");
+    console.error("Error message:", error.message);
+    console.error("Error code:", error.code);
+    console.error("Error SQL:", error.sql);
+    console.error("Full error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to accept contract",
+      error: error.message,
+      error_code: error.code,
     });
   } finally {
     connection.release();

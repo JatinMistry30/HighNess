@@ -276,7 +276,7 @@ const FreelancerDashboard = () => {
               </p>
             </div>
             <motion.button
-              onClick={() => navigate("/home")}
+              onClick={() => navigate("/")}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -503,7 +503,7 @@ const FreelancerDashboard = () => {
                       </div>
                       <p className="text-gray-600 mb-4">No applications yet</p>
                       <motion.button
-                        onClick={() => navigate("/home")}
+                        onClick={() => navigate("/")}
                         className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -579,7 +579,7 @@ const FreelancerDashboard = () => {
                     </div>
                     <p className="text-gray-600 mb-4">No applications yet</p>
                     <motion.button
-                      onClick={() => navigate("/home")}
+                      onClick={() => navigate("/")}
                       className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -719,38 +719,33 @@ const FreelancerDashboard = () => {
                             )}
 
                           {/* Accepted Status - Create Contract Button */}
-                          {app.status === "ACCEPTED" && (
+                          {app.status === "ACCEPTED" ? (
                             <div className="mt-4 flex items-center gap-3">
                               {proposalContractMap[app.id]?.has_contract ? (
-                                proposalContractMap[app.id]?.can_proceed ? (
-                                  <motion.button
-                                    // onClick={() => navigate(`/workspace/${proposalContractMap[app.id].contract_id}`)}
-                                    onClick={() =>
-                                      navigate(
-                                        `/workspace`,
-                                      )
-                                    }
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                  >
-                                    Go to workspace
-                                  </motion.button>
-                                ) : (
-                                  <div className="px-4 py-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-sm font-medium">
-                                    Waiting for client to accept contract
-                                  </div>
-                                )
-                              ) : (
                                 <motion.button
-                                  onClick={() => handleStartJob(app.id)}
-                                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                                  onClick={() => navigate(`/workspace`)}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
                                 >
-                                  Create Contract
+                                  Go to workspace
                                 </motion.button>
+                              ) : (
+                                <div className="px-4 py-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-sm font-medium">
+                                  Waiting for client to accept contract
+                                </div>
                               )}
+                            </div>
+                          ) : (
+                            <div className="mt-4 flex items-center gap-3">
+                              <motion.button
+                                onClick={() => handleStartJob(app.id)}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                Create Contract
+                              </motion.button>
                             </div>
                           )}
                         </motion.div>
@@ -775,7 +770,7 @@ const FreelancerDashboard = () => {
                     </div>
                     <p className="text-gray-600 mb-4">No saved jobs yet</p>
                     <motion.button
-                      onClick={() => navigate("/home")}
+                      onClick={() => navigate("/")}
                       className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}

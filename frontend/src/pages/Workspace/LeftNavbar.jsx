@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
   CheckSquare,
   Upload,
@@ -20,7 +20,7 @@ import {
   LogOut
 } from "lucide-react";
 
-const routesAll = {
+const getRoutes = (workspaceId) => ({
   freelancerRoutes: [
     {
       name: "Create Tasks",
@@ -43,7 +43,7 @@ const routesAll = {
     },
     {
       name: "Draw Area",
-      path: "/workspace/draw-area",
+      path: `/workspace/${workspaceId}/draw`,
       icon: PenTool,
       description: "Collaborative drawing workspace",
       badge: "shared"
@@ -89,7 +89,7 @@ const routesAll = {
     },
     {
       name: "Draw Area",
-      path: "/draw",
+      path: `/workspace/${workspaceId}/draw`,
       icon: PenTool,
       description: "Collaborative drawing workspace",
       badge: "shared"
@@ -113,56 +113,56 @@ const routesAll = {
       description: "Join video conference"
     }
   ]
-};
+});
 
 const NavItem = ({ route, isActive }) => {
   const Icon = route.icon;
-  
+
   return (
     <Link
       to={route.path}
       className={`
         group relative flex items-center gap-3 px-4 py-3 rounded-lg
         transition-all duration-200 ease-in-out
-        ${isActive 
-          ? 'bg-blue-600 text-white shadow-lg' 
-          : 'text-gray-700 hover:bg-gray-100 hover:text-blue-600'
+        ${isActive
+          ? "bg-blue-600 text-white shadow-lg"
+          : "text-gray-700 hover:bg-gray-100 hover:text-blue-600"
         }
       `}
     >
-      <Icon 
-        size={20} 
+      <Icon
+        size={20}
         className={`
           transition-transform duration-200
-          ${isActive ? 'scale-110' : 'group-hover:scale-110'}
+          ${isActive ? "scale-110" : "group-hover:scale-110"}
         `}
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-sm truncate">
-            {route.name}
-          </span>
+          <span className="font-medium text-sm truncate">{route.name}</span>
           {route.badge && (
-            <span className={`
-              text-xs px-2 py-0.5 rounded-full font-semibold
-              ${isActive 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-blue-100 text-blue-600'
-              }
-            `}>
+            <span
+              className={`
+                text-xs px-2 py-0.5 rounded-full font-semibold
+                ${isActive
+                  ? "bg-blue-500 text-white"
+                  : "bg-blue-100 text-blue-600"
+                }
+              `}
+            >
               {route.badge}
             </span>
           )}
         </div>
-        <p className={`
-          text-xs mt-0.5 truncate
-          ${isActive ? 'text-blue-100' : 'text-gray-500'}
-        `}>
+        <p
+          className={`
+            text-xs mt-0.5 truncate
+            ${isActive ? "text-blue-100" : "text-gray-500"}
+          `}
+        >
           {route.description}
         </p>
       </div>
-      
-      {/* Active indicator */}
       {isActive && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
       )}
@@ -170,12 +170,11 @@ const NavItem = ({ route, isActive }) => {
   );
 };
 
-const FreelancerNavbarWorkspace = ({ onClose }) => {
+const FreelancerNavbarWorkspace = ({ onClose, routes }) => {
   const location = useLocation();
-  
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="px-4 py-5 border-b border-gray-200">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-bold text-gray-800">Freelancer</h2>
@@ -188,10 +187,8 @@ const FreelancerNavbarWorkspace = ({ onClose }) => {
         </div>
         <p className="text-sm text-gray-500">Workspace Dashboard</p>
       </div>
-
-      {/* Navigation Items */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {routesAll.freelancerRoutes.map((route, index) => (
+        {routes.freelancerRoutes.map((route, index) => (
           <NavItem
             key={index}
             route={route}
@@ -199,8 +196,6 @@ const FreelancerNavbarWorkspace = ({ onClose }) => {
           />
         ))}
       </nav>
-
-      {/* Footer */}
       <div className="border-t border-gray-200 p-3 space-y-1">
         <Link
           to="/dashboard"
@@ -216,9 +211,7 @@ const FreelancerNavbarWorkspace = ({ onClose }) => {
           <Settings size={18} />
           <span className="text-sm font-medium">Settings</span>
         </Link>
-        <button
-          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-        >
+        <button className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
           <LogOut size={18} />
           <span className="text-sm font-medium">Logout</span>
         </button>
@@ -227,12 +220,11 @@ const FreelancerNavbarWorkspace = ({ onClose }) => {
   );
 };
 
-const ClientNavbarWorkspace = ({ onClose }) => {
+const ClientNavbarWorkspace = ({ onClose, routes }) => {
   const location = useLocation();
-  
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="px-4 py-5 border-b border-gray-200">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-bold text-gray-800">Client</h2>
@@ -245,10 +237,8 @@ const ClientNavbarWorkspace = ({ onClose }) => {
         </div>
         <p className="text-sm text-gray-500">Workspace Dashboard</p>
       </div>
-
-      {/* Navigation Items */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {routesAll.clientRoutes.map((route, index) => (
+        {routes.clientRoutes.map((route, index) => (
           <NavItem
             key={index}
             route={route}
@@ -256,8 +246,6 @@ const ClientNavbarWorkspace = ({ onClose }) => {
           />
         ))}
       </nav>
-
-      {/* Footer */}
       <div className="border-t border-gray-200 p-3 space-y-1">
         <Link
           to="/dashboard"
@@ -273,9 +261,7 @@ const ClientNavbarWorkspace = ({ onClose }) => {
           <Settings size={18} />
           <span className="text-sm font-medium">Settings</span>
         </Link>
-        <button
-          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-        >
+        <button className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
           <LogOut size={18} />
           <span className="text-sm font-medium">Logout</span>
         </button>
@@ -286,18 +272,14 @@ const ClientNavbarWorkspace = ({ onClose }) => {
 
 const LeftNavbar = ({ user_type = "FREELANCER" }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { id: workspaceId } = useParams();
+  const routes = getRoutes(workspaceId);
 
-  const toggleMobileNav = () => {
-    setIsMobileOpen(!isMobileOpen);
-  };
-
-  const closeMobileNav = () => {
-    setIsMobileOpen(false);
-  };
+  const toggleMobileNav = () => setIsMobileOpen(!isMobileOpen);
+  const closeMobileNav = () => setIsMobileOpen(false);
 
   return (
     <>
-      {/* Mobile Menu Button */}
       <button
         onClick={toggleMobileNav}
         className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
@@ -305,7 +287,6 @@ const LeftNavbar = ({ user_type = "FREELANCER" }) => {
         <Menu size={24} className="text-gray-700" />
       </button>
 
-      {/* Mobile Overlay */}
       {isMobileOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
@@ -313,21 +294,20 @@ const LeftNavbar = ({ user_type = "FREELANCER" }) => {
         />
       )}
 
-      {/* Sidebar - Changed to h-screen and w-72 (fixed height) */}
       <aside
         className={`
-          fixed lg:sticky top-0 left-0 z-40 
+          fixed lg:sticky top-0 left-0 z-40
           h-screen w-72
           bg-white border-r border-gray-200 shadow-xl
           transition-transform duration-300 ease-in-out
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
         `}
       >
         {user_type === "FREELANCER" ? (
-          <FreelancerNavbarWorkspace onClose={closeMobileNav} />
+          <FreelancerNavbarWorkspace onClose={closeMobileNav} routes={routes} />
         ) : user_type === "CLIENT" ? (
-          <ClientNavbarWorkspace onClose={closeMobileNav} />
+          <ClientNavbarWorkspace onClose={closeMobileNav} routes={routes} />
         ) : (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500">Invalid user type</p>
@@ -339,4 +319,3 @@ const LeftNavbar = ({ user_type = "FREELANCER" }) => {
 };
 
 export default LeftNavbar;
-export { routesAll };

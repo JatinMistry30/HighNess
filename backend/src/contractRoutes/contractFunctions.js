@@ -181,26 +181,44 @@ export const submitContract = async (req, res) => {
   }
 };
 
-// Get contract details
-export const getContract = async (req, res) => {
+export const getProposalContracts = async (req, res) => {
   const connection = await sqlPool.getConnection();
   try {
-    const { contractId } = req.params;
-    const userId = req.user.id;
+    const { proposalId } = req.params;
 
+    if (!proposalId) {
+      return res.status(400).json({
+        success: false,
+        message: "proposalId is required",
+      });
+    }
+
+    // Check if contract exists
+    const [contractCheck] = await connection.execute(
+      `SELECT * FROM contracts WHERE proposal_id = ?`,
+      [proposalId],   
+    );
+
+    if (contractCheck.length > 0) {
+      console.log("Contract data:", contractCheck[0]);
+    }
+
+    // Full query
     const [contracts] = await connection.execute(
       `
         SELECT c.*,
             f.full_name AS freelancer_name,
+            f.email AS freelancer_email,
             cl.full_name AS client_name,
+            cl.email AS client_email,
             j.title AS job_title
         FROM contracts c
         JOIN users f ON c.freelancer_id = f.id
         JOIN users cl ON c.client_id = cl.id
         JOIN jobs j ON c.job_id = j.id
-        WHERE c.id = ?   
+        WHERE c.proposal_id = ?
         `,
-      [contractId],
+      [proposalId],  
     );
 
     if (contracts.length === 0) {
@@ -212,7 +230,97 @@ export const getContract = async (req, res) => {
 
     const contract = contracts[0];
 
+    const [milestones] = await connection.execute(
+      `
+      SELECT *
+      FROM milestones
+      WHERE contract_id = ?
+      ORDER BY milestone_number ASC
+      `,
+      [contract.id], 
+    );
+
+    contract.milestones = milestones;
+
+    return res.json({
+      success: true,
+      data: contract,
+    });
+
+  } catch (error) {
+    console.error("Get contract error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch contract details",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+};
+
+
+// Get contract details
+export const getContract = async (req, res) => {
+  const connection = await sqlPool.getConnection();
+  try {
+    const { contractId } = req.params;
+    const userId = req.user.id;
+
+    console.log("=== GET CONTRACT DEBUG ===");
+    console.log("Contract ID:", contractId);
+    console.log("User ID:", userId);
+
+    // First, check if the contract exists at all
+    const [contractCheck] = await connection.execute(
+      `SELECT * FROM contracts WHERE id = ?`,
+      [contractId],
+    );
+
+    console.log("Contract exists?", contractCheck.length > 0);
+    if (contractCheck.length > 0) {
+      console.log("Contract data:", contractCheck[0]);
+    }
+
+    // Now try the full query
+    const [contracts] = await connection.execute(
+      `
+        SELECT c.*,
+            f.full_name AS freelancer_name,
+            f.email AS freelancer_email,
+            cl.full_name AS client_name,
+            cl.email AS client_email,
+            j.title AS job_title
+        FROM contracts c
+        JOIN users f ON c.freelancer_id = f.id
+        JOIN users cl ON c.client_id = cl.id
+        JOIN jobs j ON c.job_id = j.id
+        WHERE c.id = ?   
+        `,
+      [contractId],
+    );
+
+    console.log("Query returned rows:", contracts.length);
+    if (contracts.length > 0) {
+      console.log("Contract with joins:", contracts[0]);
+    }
+
+    if (contracts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Contract not found",
+      });
+    }
+
+    const contract = contracts[0];
+
+    // Authorization check
     if (contract.freelancer_id !== userId && contract.client_id !== userId) {
+      console.log("Authorization failed:", {
+        contract_freelancer: contract.freelancer_id,
+        contract_client: contract.client_id,
+        current_user: userId,
+      });
       return res.status(403).json({
         success: false,
         message: "Unauthorized to view this contract",
@@ -229,6 +337,7 @@ export const getContract = async (req, res) => {
       [contractId],
     );
 
+    console.log("Milestones found:", milestones.length);
     contract.milestones = milestones;
 
     return res.json({
@@ -240,12 +349,12 @@ export const getContract = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch contract details",
+      error: error.message, // Add error details for debugging
     });
   } finally {
     connection.release();
   }
 };
-
 // GET MY CONTRACTS (CLIENT / FREELANCER)
 export const getMyContracts = async (req, res) => {
   const connection = await sqlPool.getConnection();
@@ -316,30 +425,28 @@ export const getProposalById = async (req, res) => {
     // Check if proposal exists and user has access
     const [proposals] = await connection.execute(
       `
-      SELECT 
-        p.*,
-        j.id as job_id,
-        j.title as job_title,
-        j.description as job_description,
-        j.category,
-        j.project_type,
-        j.fixed_budget,
-        j.budget_max,
-        j.client_id,
-        j.client_id as job_client_id,
-        u1.full_name as freelancer_name,
-        u1.email as freelancer_email,
-        u2.full_name as client_name,
-        u2.email as client_email
-      FROM proposals p
-      JOIN jobs j ON p.job_id = j.id
-      JOIN users u1 ON p.freelancer_id = u1.id
-      JOIN users u2 ON j.client_id = u2.id
-      WHERE p.id = ?
-      `,
+  SELECT 
+    p.*,
+    j.id as job_id,
+    j.title as job_title,
+    j.description as job_description,
+    j.category,
+    j.project_type,
+    j.fixed_budget,
+    j.client_id,
+    j.client_id as job_client_id,
+    u1.full_name as freelancer_name,
+    u1.email as freelancer_email,
+    u2.full_name as client_name,
+    u2.email as client_email
+  FROM proposals p
+  JOIN jobs j ON p.job_id = j.id
+  JOIN users u1 ON p.freelancer_id = u1.id
+  JOIN users u2 ON j.client_id = u2.id
+  WHERE p.id = ?
+  `,
       [proposalId],
     );
-
     if (!proposals.length) {
       return res.status(404).json({
         success: false,
@@ -429,7 +536,7 @@ export const getProposalContractStatus = async (req, res) => {
     );
 
     const hasContract = !!contract;
-    console.log(contract)
+    console.log(contract);
 
     return res.json({
       success: true,

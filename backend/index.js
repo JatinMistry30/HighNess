@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer } from "http";
 import sqlPool from "./src/DataBase/DB.js";
 import dotenv from "dotenv";
 import authRoutes from "./src/authRoutes/routes.js";
@@ -7,7 +8,8 @@ import clientRoutes from "./src/clientRoutes/routes.js";
 import freelancerRoutes from "./src/freelancerRoutes/routes.js";
 import contractRoutes from "./src/contractRoutes/routes.js";
 import workspaceRoutes from "./src/workspaceRoutes/routes.js";
-
+import canvasRouter from "./src/canvasRoutes/routes.js";
+import { createSocketServer } from "./src/socketServer/socketServer.js";
 dotenv.config();
 
 const app = express();
@@ -46,7 +48,13 @@ app.use('/contract' , contractRoutes)
 
 // Wrokspace routes
 app.use('/workspace', workspaceRoutes) 
-//Start Server
-app.listen(PORT, () => {
+
+//Canvas Routes
+app.use('/canvas', canvasRouter)
+
+const httpServer = createServer(app);
+createSocketServer(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`Server Running `, PORT);
 });

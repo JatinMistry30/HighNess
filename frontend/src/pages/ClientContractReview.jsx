@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; 
+import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { Link } from "react-router-dom";
 import { Download, CheckCircle, XCircle, Edit3 } from "lucide-react";
@@ -8,7 +8,7 @@ import { Download, CheckCircle, XCircle, Edit3 } from "lucide-react";
 const ClientContractReview = () => {
   const { contractId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth(); // For user type check
+  const { user } = useAuth();
 
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +16,6 @@ const ClientContractReview = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Contract status states
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -62,15 +61,15 @@ const ClientContractReview = () => {
   const handleAcceptContract = async () => {
     try {
       setActionLoading(true);
-      // TODO: Update backend to handle contract acceptance
-      await api.post(`/contract/${contractId}/accept`, {
-        client_signed: true,
-        signed_at: new Date().toISOString(),
-      });
-      alert("Contract accepted! Project workspace opening...");
-      navigate("/dashboard");
+      const response = await api.post(`/contract/${contractId}/accept`);
+
+      if (response.data.success) {
+        alert("Contract accepted! Project workspace is ready.");
+        navigate(`/workspace/${response.data.workspace_id}`);
+      }
     } catch (error) {
-      alert("Failed to accept contract");
+      console.error("Accept error:", error);
+      alert(error.response?.data?.message || "Failed to accept contract");
     } finally {
       setActionLoading(false);
     }
@@ -89,7 +88,7 @@ const ClientContractReview = () => {
       alert("Contract rejected. Freelancer notified.");
       navigate("/dashboard");
     } catch (error) {
-      alert("Failed to reject contract");
+      alert(error.response?.data?.message || "Failed to reject contract");
     } finally {
       setActionLoading(false);
       setShowRejectModal(false);
@@ -99,7 +98,7 @@ const ClientContractReview = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Loading...
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
       </div>
     );
   }
@@ -110,7 +109,7 @@ const ClientContractReview = () => {
         <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full mx-4">
           <div className="text-center text-red-600 mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Contract Not Found
+            The Freelancer will issue a Contract.
           </h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
@@ -158,13 +157,21 @@ const ClientContractReview = () => {
           <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                <div
+                  className={`w-3 h-3 rounded-full animate-pulse ${
+                    contract.status === "ACTIVE"
+                      ? "bg-green-400"
+                      : "bg-yellow-400"
+                  }`}
+                ></div>
                 <h1 className="text-3xl font-bold text-slate-900">
                   Contract Review #{contract.id}
                 </h1>
               </div>
               <p className="text-xl text-slate-600">
-                Review and accept this contract
+                {contract.status === "ACTIVE"
+                  ? "Contract is active"
+                  : "Review and accept this contract"}
               </p>
             </div>
             <div className="flex gap-3">
@@ -314,19 +321,19 @@ const ClientContractReview = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* ✅ FIXED: Action Buttons - show Accept/Reject when PENDING_CLIENT, show workspace link when ACTIVE */}
             <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-3xl shadow-xl border border-slate-200 p-8">
               <h3 className="text-xl font-bold text-slate-900 mb-4">
                 Ready to proceed?
               </h3>
 
-              {contract.status === "PENDING_CLIENT" ? (
+              {contract.status === "ACTIVE" ? (
+                // Already accepted - show workspace link
                 <div className="flex flex-col items-center justify-center gap-4 p-6 bg-emerald-100 rounded-2xl text-emerald-700 font-semibold text-lg">
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-6 h-6" />
                     You have accepted this contract
                   </div>
-
                   <Link
                     to="/workspace"
                     className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition"
@@ -335,6 +342,7 @@ const ClientContractReview = () => {
                   </Link>
                 </div>
               ) : (
+                // PENDING_CLIENT - show accept/reject buttons
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <button
                     onClick={handleAcceptContract}

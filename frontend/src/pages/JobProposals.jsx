@@ -48,24 +48,66 @@ const JobProposals = () => {
       const response = await api.get(`/client/jobs/${jobId}/proposals`, {
         params,
       });
+      console.log("This is params for fetch Proposals", params);
+      console.log("Job ID being fetched:", jobId);
 
       if (response.data.success) {
         setJob(response.data.job || null);
         setProposals(response.data.proposals || []);
 
-        // Check if any proposal is ACCEPTED - redirect to contract review
         const acceptedProposal = response.data.proposals?.find(
-          (p) => p.status === "ACCEPTED"
+          (p) => p.status === "ACCEPTED",
         );
-        
+
         if (acceptedProposal) {
-          // Redirect to contract review page for this accepted proposal
-          navigate(`/contracts/${acceptedProposal.id}/review`, {
-            state: { 
-              proposal: acceptedProposal,
-              job: response.data.job 
+          console.log("Found accepted proposal:", acceptedProposal);
+          console.log("Accepted Proposal ID:", acceptedProposal.id);
+
+          // Check if the proposal has contract_id directly from the API
+          if (acceptedProposal.contract_id) {
+            // If backend returns contract_id in proposal object
+            console.log(
+              "Redirecting to contract ID:",
+              acceptedProposal.contract_id,
+            );
+            navigate(`/contracts/${acceptedProposal.id}/review`, {
+              state: {
+                proposal: acceptedProposal,
+                job: response.data.job,
+              },
+            });
+          } else {
+            try {
+              console.log(
+                "Fetching contract for proposal ID:",
+                acceptedProposal.id,
+              );
+              const contractResponse = await api.get(
+                `/contract/proposal/${acceptedProposal.id}`,
+              );
+
+              if (contractResponse.data.success) {
+                const contractId = contractResponse.data.data?.id;
+
+                if (contractId) {
+                  navigate(`/contracts/${contractId}/review`, {
+                    state: {
+                      proposal: acceptedProposal,
+                      job: response.data.job,
+                    },
+                  });
+                } else {
+                  console.log("No contract ID found in response");
+                }
+              }
+            } catch (contractError) {
+              console.error(
+                "Error fetching contract for accepted proposal:",
+                contractError,
+              );
+              console.log("Staying on proposals page - no contract found");
             }
-          });
+          }
         }
       }
     } catch (error) {
@@ -81,11 +123,10 @@ const JobProposals = () => {
       setLoading(false);
     }
   };
-
   const handleAccept = async (proposalId) => {
     if (
       !window.confirm(
-        "Are you sure you want to accept this proposal? You will be redirected to the contract review page."
+        "Are you sure you want to accept this proposal? You will be redirected to the contract review page.",
       )
     )
       return;
@@ -94,12 +135,15 @@ const JobProposals = () => {
       const response = await api.post(`/client/proposals/${proposalId}/accept`);
 
       if (response.data.success) {
-        // Redirect to contract review page
-        navigate(`/client/contract/${proposalId}/review`, {
-          state: { 
-            proposal: proposals.find(p => p.id === proposalId),
-            job: job 
-          }
+        //Get the contract_id from the response
+        const contractId = response.data.contract_id;
+
+        // Navigate with the CORRECT contract ID
+        navigate(`/contracts/${contractId}/review`, {
+          state: {
+            proposal: proposals.find((p) => p.id === proposalId),
+            job: job,
+          },
         });
       }
     } catch (error) {
@@ -121,7 +165,7 @@ const JobProposals = () => {
         `/client/proposals/${selectedProposal.id}/reject`,
         {
           rejection_reason: rejectionReason,
-        }
+        },
       );
 
       if (response.data.success) {
@@ -165,7 +209,7 @@ const JobProposals = () => {
     try {
       const response = await api.post(
         `/client/proposals/${selectedProposal.id}/counter`,
-        counterOffer
+        counterOffer,
       );
 
       if (response.data.success) {
@@ -355,7 +399,7 @@ const JobProposals = () => {
                             year: "numeric",
                             month: "long",
                             day: "numeric",
-                          }
+                          },
                         )
                       : "Unknown date"}
                   </p>
@@ -372,7 +416,7 @@ const JobProposals = () => {
                     <div className="text-2xl font-bold text-blue-600">
                       ₹
                       {parseFloat(
-                        proposal.proposed_hourly_rate
+                        proposal.proposed_hourly_rate,
                       ).toLocaleString()}
                       /hr
                     </div>
@@ -406,7 +450,7 @@ const JobProposals = () => {
                       <p className="text-sm text-blue-800">
                         Counter Budget: ₹
                         {parseFloat(
-                          proposal.counter_offer_budget
+                          proposal.counter_offer_budget,
                         ).toLocaleString()}
                       </p>
                     )}
@@ -414,7 +458,7 @@ const JobProposals = () => {
                       <p className="text-sm text-blue-800">
                         Counter Rate: ₹
                         {parseFloat(
-                          proposal.counter_offer_hourly_rate
+                          proposal.counter_offer_hourly_rate,
                         ).toLocaleString()}
                         /hr
                       </p>
@@ -500,7 +544,7 @@ const JobProposals = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     Original: ₹
                     {parseFloat(
-                      selectedProposal.proposed_budget
+                      selectedProposal.proposed_budget,
                     ).toLocaleString()}
                   </p>
                 </div>
@@ -526,7 +570,7 @@ const JobProposals = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     Original: ₹
                     {parseFloat(
-                      selectedProposal.proposed_hourly_rate
+                      selectedProposal.proposed_hourly_rate,
                     ).toLocaleString()}
                     /hr
                   </p>
